@@ -1,0 +1,12 @@
+{
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "description": "For quick bookmarking.",
+  "name": "Quick Bookmarking",
+  "omnibox": { "keyword" : "qbm" },
+  "permissions": ["bookmarks"],
+  "version": "1",
+  "minimum_chrome_version": "9",
+  "manifest_version": 2
+}
