@@ -40,17 +40,11 @@ var qbm = function() {
       setDefault(suggestion("", "Save Current In Bookmarks Bar"));
    }
 
-   // When user starts to input, load bookmarks.
-   var startHandler = function() {
-      chrome.bookmarks.getTree(treeLoader);
-   }
-
    // When the user accepts an option.
    var acceptHandler = function(text) {
       console.log("Accepted [" + text + "]");
       // TODO Handle command
    }
-
 
    var commandType = function(command, startsWith) {
       return command.toLowerCase().indexOf(startsWith.toLowerCase()) === 0;
@@ -58,9 +52,9 @@ var qbm = function() {
 
    var getAction = function(command) {
       if (commandType(command, "A")) {
-         return {con: "A ", desc: "Add"};
+         return {con: "A ", desc: "<match>Add</match> <dim>to</dim>"};
       } else if (commandType(command, "L")) {
-         return {con: "L ", desc: "Load"};
+         return {con: "L ", desc: "<match>Load</match> <dim>to</dim>"};
       }
       return {con: "A ", desc: "Add?"};
    }
@@ -73,20 +67,60 @@ var qbm = function() {
       }
    }
 
+   /**
+    * Returns suggestion corresponding to a folder.
+    */
+   var addFolder = function(folder) {
+      return {
+         con: espaceTitle(folder.title),
+         desc: folder.title
+      };
+   }
+
+   var escapeTitle = function(title) {
+      return (title.indexOf("/" >= 0)) ? "\"" + title + "\"" : title;
+   }
+
    var getSuggestedPaths = function(path) {
-      var paths = [];
-      console.log("Path [" + path + "]");
-      for (var i = 0; i < bookmarks.children.length; i++) {
-         paths.push({con: bookmarks.children[i].title,
-            desc: bookmarks.children[i].title});
-         console.log("SuggestedPath [" + bookmarks.children[i].title + "]");
+      return getSuggestedPathsHelper(path, bookmarks, "");
+   }
+
+   var getChildrenPaths = function(folder, parentPath) {
+      var retPaths = [];
+      for (var i = 0; i < folder.children.length; i++) {
+         if (!folder.children[i].hasOwnProperty("url")) {
+            retPaths.push({con: parentPath + escapeTitle(folder.children[i].title),
+                     desc: parentPath + folder.children[i].title});
+         }
       }
-      return paths;
+      return retPaths;
+   }
+
+   var getSuggestedPathsHelper = function(path, folder, parentPath) {
+      console.log("GetPaths for [" + path + "] [" + parentPath + "]");
+      if (path === "") {
+         return getChildrenPaths(folder, parentPath);
+      }
+      var thisFolder = path.split("/", 1)[0];
+      var restPath = (thisFolder === path) ? "" : path.substring(thisFolder.length);
+      if (restPath.indexOf("/") === 0) {
+         restPath = restPath.substring(1);
+      }
+      var thisFolderUnquoted = thisFolder;
+      if ((thisFolder.indexOf("\"") === 0) && (thisFolder.lastIndexOf("\"") === thisFolder.length - 1)) {
+         thisFolderUnquoted = thisFolder.substring(1, thisFolder.length - 1);
+      }
+      console.log("  " + thisFolder + " " + thisFolderUnquoted + " " + thisFolder.indexOf("\"") + " " + thisFolder.lastIndexOf("\"") + " " + thisFolder.length);
+      for (var i = 0; i < folder.children.length; i++) {
+         if (folder.children[i].title === thisFolderUnquoted) {
+            return getSuggestedPathsHelper(restPath, folder.children[i], parentPath + thisFolder + "/");
+         }
+      }
+      return [];
    }
 
    var setSuggestions = function() {
       if (bookmarks === "") {
-         console.log("Waiting");
          waiting = true;
          return;
       }
@@ -95,6 +129,7 @@ var qbm = function() {
       var action = getAction(currentText);
       var path = getPath(currentText);
 
+      console.log("Path [" + path + "]");
       var suggestedPaths = getSuggestedPaths(path);
 
       for (var i = 0; i < suggestedPaths.length; i++) {
@@ -109,12 +144,13 @@ var qbm = function() {
    return {
       init: function() {
          reset();
-         chrome.omnibox.onInputStarted.addListener(startHandler());
+         chrome.omnibox.onInputStarted.addListener(function() {
+            chrome.bookmarks.getTree(treeLoader);
+         });
          chrome.omnibox.onInputEntered.addListener(function(text) {
             acceptHandler(text);
          });
          chrome.omnibox.onInputChanged.addListener(function(text, suggestFn) {
-            console.log(text);
             suggestFunctionDelayed = suggestFn;
             currentText = text;
             setSuggestions();
@@ -123,21 +159,3 @@ var qbm = function() {
    }
 } ();
 qbm.init();
-
-chrome.omnibox.onInputChanged.addListener(
-  function(text, suggest) {
-
-  }
-);
-
-chrome.omnibox.onInputStarted.addListener(function() {
-
-});
-
-chrome.omnibox.onInputCancelled.addListener(function() {
-
-});
-
-chrome.omnibox.onInputEntered.addListener(function(text) {
-
-});
