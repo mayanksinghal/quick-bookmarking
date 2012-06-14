@@ -81,8 +81,79 @@ var qbm = function() {
       return (title.indexOf("/" >= 0)) ? "\"" + title + "\"" : title;
    }
 
+
+   var getP = function(parentPath, thisPath) {
+      return (thisPath === "") ? "" : parentPath + thisPath + "/";
+   }
+
+   var getSuggestedPathsNew = function(pathTokens, bookmarkObject, parentPath) {
+      console.log("Calling: [" + pathTokens + "] obj: " + bookmarkObject.title);
+      if ((pathTokens.length === 1) && (pathTokens[0] === "")) {
+         pathTokens = [];
+      }
+      // If no tokens, return this object and all children.
+      // If one token:
+      //   If perfect match with a kid, return call the kid after consuming token.
+      //   Else all kids with partial prefix match.
+      // If more than one tokens:
+      //    Consume first token: if there is a perfect match kid, call self on kid and restTokens.
+      var retPaths = [];
+      var thisFullPath = getP(parentPath, bookmarkObject.title);
+      if (pathTokens.length === 0) {
+         // If not root, add self.
+         if (bookmarkObject.id !== "0") {
+            retPaths.push({con: thisFullPath,
+               desc: thisFullPath});
+         }
+         // Add all children.
+         for (var i = 0; i < bookmarkObject.children.length; i++) {
+            retPaths.push({con: getP(thisFullPath, bookmarkObject.children[i].title),
+               desc: getP(thisFullPath, bookmarkObject.children[i].title)});
+         }
+      } else if (pathTokens.length === 1) {
+         for (var i = 0; i < bookmarkObject.children.length; i++) {
+            if (pathTokens[0] === bookmarkObject.children[i].title) {
+               return getSuggestedPathsNew([], bookmarkObject.children[i], thisFullPath);
+            }
+         }
+         // Else suggest prefix matches.
+         for (var i = 0; i < bookmarkObject.children.length; i++) {
+            if (bookmarkObject.children[i].title.indexOf(pathTokens[0]) === 0) {
+               retPaths.push({con:getP(thisFullPath, bookmarkObject.children[i].title),
+                    desc: getP(thisFullPath, bookmarkObject.children[i].title)});
+            }
+         }
+      } else {
+         console.log("Condition this!");
+         for (var i = 0; i < bookmarkObject.children.length; i++) {
+            if (bookmarkObject.children[i].title === pathTokens[0]) {
+               pathTokens.splice(0, 1);
+               return getSuggestedPathsNew(pathTokens, bookmarkObject.children[i], thisFullPath);
+            }
+         }
+      }
+      return retPaths;
+   }
+
+
    var getSuggestedPaths = function(path) {
-      return getSuggestedPathsHelper(path, bookmarks, "");
+      console.log("Paths for query: <" + path + "> Split as: " + path.split("/"));
+      var retPaths = getSuggestedPathsNew(path.split("/"), bookmarks, "");
+      var removeThings = [];
+      for (var i = 0; i < retPaths.length; i++) {
+          console.log(i + "[" + retPaths[i].con + "]" + "[" + retPaths[i].desc + "]");
+         if ((retPaths[i].con === "") || (retPaths[i].desc === "")){
+            removeThings.push(i);
+            console.log("Remove" + i);
+         }
+      }
+      for (var i = removeThings.length - 1; i >= 0; i--) {
+         console.log(retPaths.splice(removeThings[i], 1));
+      }
+      for (var i = 0; i < retPaths.length; i++) {
+         console.log(i + "[" + retPaths[i].con + "]" + "[" + retPaths[i].desc + "]");
+      }
+      return retPaths;
    }
 
    var getChildrenPaths = function(folder, parentPath) {
@@ -97,7 +168,6 @@ var qbm = function() {
    }
 
    var getSuggestedPathsHelper = function(path, folder, parentPath) {
-      console.log("GetPaths for [" + path + "] [" + parentPath + "]");
       if (path === "") {
          return getChildrenPaths(folder, parentPath);
       }
@@ -129,7 +199,6 @@ var qbm = function() {
       var action = getAction(currentText);
       var path = getPath(currentText);
 
-      console.log("Path [" + path + "]");
       var suggestedPaths = getSuggestedPaths(path);
 
       for (var i = 0; i < suggestedPaths.length; i++) {
