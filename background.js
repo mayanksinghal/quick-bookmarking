@@ -124,7 +124,6 @@ var qbm = function() {
             }
          }
       } else {
-         console.log("Condition this!");
          for (var i = 0; i < bookmarkObject.children.length; i++) {
             if (bookmarkObject.children[i].title === pathTokens[0]) {
                pathTokens.splice(0, 1);
@@ -137,21 +136,15 @@ var qbm = function() {
 
 
    var getSuggestedPaths = function(path) {
-      console.log("Paths for query: <" + path + "> Split as: " + path.split("/"));
       var retPaths = getSuggestedPathsNew(path.split("/"), bookmarks, "");
       var removeThings = [];
       for (var i = 0; i < retPaths.length; i++) {
-          console.log(i + "[" + retPaths[i].con + "]" + "[" + retPaths[i].desc + "]");
          if ((retPaths[i].con === "") || (retPaths[i].desc === "")){
             removeThings.push(i);
-            console.log("Remove" + i);
          }
       }
       for (var i = removeThings.length - 1; i >= 0; i--) {
-         console.log(retPaths.splice(removeThings[i], 1));
-      }
-      for (var i = 0; i < retPaths.length; i++) {
-         console.log(i + "[" + retPaths[i].con + "]" + "[" + retPaths[i].desc + "]");
+         retPaths.splice(removeThings[i], 1);
       }
       return retPaths;
    }
@@ -167,26 +160,9 @@ var qbm = function() {
       return retPaths;
    }
 
-   var getSuggestedPathsHelper = function(path, folder, parentPath) {
-      if (path === "") {
-         return getChildrenPaths(folder, parentPath);
-      }
-      var thisFolder = path.split("/", 1)[0];
-      var restPath = (thisFolder === path) ? "" : path.substring(thisFolder.length);
-      if (restPath.indexOf("/") === 0) {
-         restPath = restPath.substring(1);
-      }
-      var thisFolderUnquoted = thisFolder;
-      if ((thisFolder.indexOf("\"") === 0) && (thisFolder.lastIndexOf("\"") === thisFolder.length - 1)) {
-         thisFolderUnquoted = thisFolder.substring(1, thisFolder.length - 1);
-      }
-      console.log("  " + thisFolder + " " + thisFolderUnquoted + " " + thisFolder.indexOf("\"") + " " + thisFolder.lastIndexOf("\"") + " " + thisFolder.length);
-      for (var i = 0; i < folder.children.length; i++) {
-         if (folder.children[i].title === thisFolderUnquoted) {
-            return getSuggestedPathsHelper(restPath, folder.children[i], parentPath + thisFolder + "/");
-         }
-      }
-      return [];
+   var encode = function(text) {
+      // TODO: This is wrong.
+      return escape(text);
    }
 
    var setSuggestions = function() {
@@ -203,7 +179,7 @@ var qbm = function() {
 
       for (var i = 0; i < suggestedPaths.length; i++) {
          suggestions.push(suggestion(action.con + suggestedPaths[i].con,
-                  action.desc + " " + suggestedPaths[i].desc));
+                  encode(action.desc + " " + suggestedPaths[i].desc)));
       }
 
       // TODO Populate Suggestions.
