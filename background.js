@@ -107,25 +107,27 @@ var qbm = function() {
          }
          // Add all children.
          for (var i = 0; i < bookmarkObject.children.length; i++) {
-            retPaths.push({con: getP(thisFullPath, bookmarkObject.children[i].title),
-               desc: getP(thisFullPath, bookmarkObject.children[i].title)});
+            if (!bookmarkObject.children[i].hasOwnProperty("url")) {
+               retPaths.push({con: getP(thisFullPath, bookmarkObject.children[i].title),
+                  desc: getP(thisFullPath, bookmarkObject.children[i].title)});
+            }
          }
       } else if (pathTokens.length === 1) {
          for (var i = 0; i < bookmarkObject.children.length; i++) {
-            if (pathTokens[0] === bookmarkObject.children[i].title) {
+            if ((pathTokens[0] === bookmarkObject.children[i].title) && (!bookmarkObject.children[i].hasOwnProperty("url"))) {
                return getSuggestedPathsNew([], bookmarkObject.children[i], thisFullPath);
             }
          }
          // Else suggest prefix matches.
          for (var i = 0; i < bookmarkObject.children.length; i++) {
-            if (bookmarkObject.children[i].title.indexOf(pathTokens[0]) === 0) {
+            if ((bookmarkObject.children[i].title.indexOf(pathTokens[0]) === 0) && (!bookmarkObject.children[i].hasOwnProperty("url"))) {
                retPaths.push({con:getP(thisFullPath, bookmarkObject.children[i].title),
                     desc: getP(thisFullPath, bookmarkObject.children[i].title)});
             }
          }
       } else {
          for (var i = 0; i < bookmarkObject.children.length; i++) {
-            if (bookmarkObject.children[i].title === pathTokens[0]) {
+            if ((bookmarkObject.children[i].title === pathTokens[0]) && (!bookmarkObject.children[i].hasOwnProperty("url"))) {
                pathTokens.splice(0, 1);
                return getSuggestedPathsNew(pathTokens, bookmarkObject.children[i], thisFullPath);
             }
@@ -161,8 +163,12 @@ var qbm = function() {
    }
 
    var encode = function(text) {
-      // TODO: This is wrong.
-      return escape(text);
+    return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
    }
 
    var setSuggestions = function() {
@@ -179,7 +185,7 @@ var qbm = function() {
 
       for (var i = 0; i < suggestedPaths.length; i++) {
          suggestions.push(suggestion(action.con + suggestedPaths[i].con,
-                  encode(action.desc + " " + suggestedPaths[i].desc)));
+                  action.desc + " " + encode(suggestedPaths[i].desc)));
       }
 
       // TODO Populate Suggestions.
